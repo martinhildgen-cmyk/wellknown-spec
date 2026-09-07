@@ -1,0 +1,63 @@
+{
+  "version": "0.1",
+  "product": {
+    "name": "Northwind Payments API",
+    "url": "https://northwind.example",
+    "docs": "https://docs.northwind.example",
+    "status_url": "https://status.northwind.example",
+    "openapi": "https://api.northwind.example/openapi.json",
+    "llms_txt": "https://docs.northwind.example/llms.txt"
+  },
+  "support": {
+    "http": { "base_url": "https://support.northwind.example/agent/v1" }
+  },
+  "tools": ["ask", "act", "escalate", "status"],
+  "verification": {
+    "levels": [0, 1, 3],
+    "introspection_url": "https://api.northwind.example/v1/keys/introspect",
+    "web_bot_auth": { "directory_url": "https://northwind.example/.well-known/http-message-signatures-directory" }
+  },
+  "actions": [
+    {
+      "id": "regenerate_api_key",
+      "description": "Rotate the API key used by the calling agent's account.",
+      "params": { "type": "object", "properties": { "key_id": { "type": "string" } }, "required": ["key_id"], "additionalProperties": false },
+      "min_level": 1,
+      "confirmation": "principal"
+    },
+    {
+      "id": "refund_credit",
+      "description": "Refund a failed prepaid credit purchase of at most 50 USD to the original payment method.",
+      "params": {
+        "type": "object",
+        "properties": { "charge_id": { "type": "string" }, "reason": { "type": "string", "maxLength": 300 } },
+        "required": ["charge_id"],
+        "additionalProperties": false
+      },
+      "min_level": 3,
+      "confirmation": "vendor",
+      "rate_limit": { "requests": 2, "per": "day" }
+    },
+    {
+      "id": "raise_rate_limit_temporarily",
+      "description": "Double the account's request rate limit for the next 60 minutes.",
+      "params": { "type": "object", "properties": {}, "additionalProperties": false },
+      "min_level": 1,
+      "confirmation": "none",
+      "rate_limit": { "requests": 1, "per": "hour" }
+    }
+  ],
+  "policies": {
+    "rate_limit": { "requests": 30, "per": "minute" },
+    "languages": ["en"],
+    "human_hours": "24/7 for high urgency, otherwise Mon-Fri 09:00-18:00 America/New_York",
+    "data_retention_days": 30
+  },
+  "receipts": {
+    "enabled": true,
+    "url_template": "https://support.northwind.example/receipts/{receipt_id}",
+    "delivery": ["inline", "webhook"]
+  },
+  "contact": { "email": "api-support@northwind.example", "url": "https://northwind.example/support" },
+  "updated": "2026-09-07"
+}

@@ -1,0 +1,70 @@
+{
+  "version": "0.1",
+  "product": {
+    "name": "Wellknown",
+    "url": "https://wellknown.support",
+    "docs": "https://wellknown.support/docs",
+    "status_url": "https://status.wellknown.support",
+    "changelog": "https://wellknown.support/changelog",
+    "llms_txt": "https://wellknown.support/llms.txt",
+    "mcp_server": "https://wellknown.support/.well-known/mcp/server.json"
+  },
+  "support": {
+    "mcp": { "url": "https://wellknown.wellknown.support/mcp", "transport": "streamable-http", "auth": "none" },
+    "http": { "base_url": "https://wellknown.wellknown.support/v1" }
+  },
+  "tools": ["ask", "act", "escalate", "status"],
+  "verification": {
+    "levels": [0, 1, 2],
+    "introspection_url": "https://api.wellknown.support/v1/introspect",
+    "oauth": {
+      "authorization_url": "https://wellknown.support/oauth/authorize",
+      "token_url": "https://api.wellknown.support/oauth/token",
+      "scopes": ["support:read", "support:act"]
+    }
+  },
+  "actions": [
+    {
+      "id": "regenerate_api_key",
+      "description": "Rotate the API key of the authenticated Wellknown account. The old key stops working immediately.",
+      "params": { "type": "object", "properties": {}, "additionalProperties": false },
+      "min_level": 1,
+      "confirmation": "principal",
+      "rate_limit": { "requests": 3, "per": "day" }
+    },
+    {
+      "id": "reindex_docs",
+      "description": "Trigger a fresh crawl of the documentation sources attached to the account.",
+      "params": { "type": "object", "properties": {}, "additionalProperties": false },
+      "min_level": 1,
+      "confirmation": "none",
+      "rate_limit": { "requests": 10, "per": "day" }
+    },
+    {
+      "id": "resend_invoice",
+      "description": "Email the latest invoice to the billing address on file.",
+      "params": {
+        "type": "object",
+        "properties": { "invoice_id": { "type": "string" } },
+        "additionalProperties": false
+      },
+      "min_level": 1,
+      "confirmation": "none",
+      "rate_limit": { "requests": 5, "per": "day" }
+    }
+  ],
+  "policies": {
+    "rate_limit": { "requests": 60, "per": "minute" },
+    "languages": ["en", "fr"],
+    "human_hours": "Mon-Fri 08:00-19:00 Europe/Paris, best effort otherwise",
+    "data_retention_days": 90
+  },
+  "receipts": {
+    "enabled": true,
+    "url_template": "https://wellknown.support/r/{receipt_id}",
+    "delivery": ["inline", "email"]
+  },
+  "contact": { "email": "support@wellknown.support", "url": "https://wellknown.support/contact" },
+  "updated": "2026-09-07",
+  "provider": { "name": "Wellknown", "url": "https://wellknown.support" }
+}
