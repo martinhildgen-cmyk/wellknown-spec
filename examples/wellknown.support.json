@@ -10,7 +10,11 @@
     "mcp_server": "https://wellknown.support/.well-known/mcp/server.json"
   },
   "support": {
-    "mcp": { "url": "https://wellknown.wellknown.support/mcp", "transport": "streamable-http", "auth": "none" },
+    "mcp": {
+      "url": "https://wellknown.wellknown.support/mcp",
+      "transport": "streamable-http",
+      "auth": "none"
+    },
     "http": { "base_url": "https://wellknown.wellknown.support/v1" }
   },
   "tools": ["ask", "act", "escalate", "status"],

@@ -1,7 +1,13 @@
 {
   "version": "0.1",
   "product": { "name": "Acme API", "url": "https://acme.dev", "docs": "https://docs.acme.dev" },
-  "support": { "mcp": { "url": "https://acme.wellknown.support/mcp", "transport": "streamable-http", "auth": "none" } },
+  "support": {
+    "mcp": {
+      "url": "https://acme.wellknown.support/mcp",
+      "transport": "streamable-http",
+      "auth": "none"
+    }
+  },
   "tools": ["ask", "escalate", "status"],
   "verification": { "levels": [0] },
   "contact": { "email": "support@acme.dev" },
