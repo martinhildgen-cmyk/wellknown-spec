@@ -190,7 +190,8 @@ Delivery: always `inline` in tool outputs; `email` to `principal.email` when giv
 ## 7. Errors and limits
 
 - HTTP servers use standard status codes; MCP servers return tool errors with `isError: true` and a JSON body `{ "code": "...", "message": "...", "retry_after": seconds }`.
-- Codes: `rate_limited`, `verification_required`, `verification_failed`, `action_unknown`, `action_refused`, `index_not_ready`, `internal`.
+- Codes: `rate_limited`, `verification_required`, `verification_failed`, `action_unknown`, `action_refused`, `index_not_ready`, `invalid_request`, `internal`.
+- `invalid_request`: the input does not match the tool's schema (HTTP 400), or names an endpoint, ticket or receipt the server does not know (HTTP 404). Fix the request before retrying.
 - Default rate limit if not declared: 60 requests per minute per agent identity.
 - Card size: a card must not exceed 64 KiB. Validators may reject larger documents before parsing. URLs are limited to 2048 characters, `actions` to 64 entries, each action's `params` schema to 32 top-level properties.
 
@@ -215,6 +216,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: added the `invalid_request` error code, section 7, for inputs that fail validation and for unknown endpoints, tickets or receipts; servers already returned it. An addition only (section 10): no change to the card format, cards keep `"version": "0.1"`.
 - **0.1, 7 September 2026**: initial draft. Schema fix the same day: the conditional rules (`act` requires `actions`, level 1 requires `introspection_url`, level 2 `oauth`, level 3 `web_bot_auth`) now only apply when the triggering field is present, so a card missing `tools` or `levels` reports the missing field rather than the derived requirement. Also added upper bounds (URL and email length, `actions` count, `params` size) and a 64 KiB document limit, section 7. No change to the card format.
 
 ## 12. Reference implementation
