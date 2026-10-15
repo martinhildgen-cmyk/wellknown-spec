@@ -51,7 +51,9 @@ Top-level fields. See `support-card.schema.json` for the normative schema.
 | `receipts` | no | Object: `enabled`, `url_template` (with `{receipt_id}`), `delivery` (`"inline"`, `"email"`, `"webhook"`) |
 | `contact` | yes | Human fallback: `email` and/or `url` |
 | `updated` | yes | ISO 8601 date of last change |
-| `provider` | no | Who hosts the support endpoint: `name`, `url` |
+| `provider` | no | Who hosts the support endpoint: `name`, `url`, optional `notice` |
+
+`provider.notice` is one line, at most 300 characters, in which a provider hosting the card for a product says the card is not the vendor's own: for example an unofficial demo built from the product's public documentation, or a product whose vendor has not confirmed it yet. Agents should relay it with the product name and must not present answers or escalations from such a card as coming from the vendor. A vendor's own card carries no notice.
 
 A minimal card:
 
@@ -218,6 +220,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: optional `provider.notice` (section 3), one line in which a hosting provider says the card is not the vendor's own: an unofficial demo built from public documentation, or a product its vendor has not confirmed yet. An optional field only, cards keep `"version": "0.1"`; validators that predate it refuse a card carrying it, since the schema allows no unknown property, so only hosted cards that need it carry it.
 - **0.2 (draft)**: added the `invalid_request` error code, section 7, for inputs that fail validation and for unknown endpoints, tickets or receipts; servers already returned it. An addition only (section 10): no change to the card format, cards keep `"version": "0.1"`.
 - **0.2 (draft)**: the `receipt` field of the `ask` and `escalate` outputs (sections 4.1 and 4.3) may be absent while a server does not implement receipts (section 6). This only relaxes the output contract.
 - **0.2 (draft)**: receipts, from the first implementation (section 6). `ask` accepts `principal.email`, as `escalate` already did, so the receipt of an answered question can reach the human (sections 4.1 and 6). An error body may carry the `failed` receipt of a call the server accepted (sections 6 and 7). `status` with a `receipt_id` returns the receipt's fields under `receipt` and never a human reply, which stays behind the `ticket_id`: a receipt is meant to be shared (section 4.4). Optional fields only: no change to the card format, cards keep `"version": "0.1"`.

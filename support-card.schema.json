@@ -182,7 +182,14 @@
       "required": ["name", "url"],
       "properties": {
         "name": { "type": "string", "minLength": 1, "maxLength": 120 },
-        "url": { "$ref": "#/$defs/httpsUrl" }
+        "url": { "$ref": "#/$defs/httpsUrl" },
+        "notice": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "pattern": "^[^\\u0000-\\u001F\\u007F]*$",
+          "description": "One line from the hosting provider when the card is not the vendor's own (an unofficial demo, a product not confirmed by its vendor)"
+        }
       }
     }
   },

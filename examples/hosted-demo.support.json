@@ -1,0 +1,34 @@
+{
+  "version": "0.1",
+  "product": {
+    "name": "Acme API",
+    "url": "https://acme.dev",
+    "docs": "https://docs.acme.dev",
+    "llms_txt": "https://docs.acme.dev/llms.txt"
+  },
+  "support": {
+    "mcp": {
+      "url": "https://acme.wellknown.support/mcp",
+      "transport": "streamable-http",
+      "auth": "none"
+    }
+  },
+  "tools": ["ask", "escalate", "status"],
+  "verification": { "levels": [0] },
+  "policies": {
+    "rate_limit": { "requests": 60, "per": "minute" },
+    "human_hours": "Mon-Fri 08:00-19:00 Europe/Paris, best effort otherwise"
+  },
+  "receipts": {
+    "enabled": true,
+    "url_template": "https://wellknown.support/r/{receipt_id}",
+    "delivery": ["inline", "email"]
+  },
+  "contact": { "email": "support@wellknown.support" },
+  "updated": "2026-10-15",
+  "provider": {
+    "name": "Wellknown",
+    "url": "https://wellknown.support",
+    "notice": "Unofficial demo by Wellknown, built from Acme API's public documentation. Not operated by or affiliated with Acme API."
+  }
+}
