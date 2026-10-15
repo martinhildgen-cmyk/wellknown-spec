@@ -11,7 +11,8 @@
       "url": "https://wellknown.wellknown.support/mcp",
       "transport": "streamable-http",
       "auth": "none"
-    }
+    },
+    "http": { "base_url": "https://wellknown.wellknown.support/v1" }
   },
   "tools": ["ask", "escalate", "status"],
   "verification": { "levels": [0] },
@@ -23,7 +24,7 @@
   "receipts": {
     "enabled": true,
     "url_template": "https://wellknown.support/r/{receipt_id}",
-    "delivery": ["inline", "email"]
+    "delivery": ["inline"]
   },
   "contact": { "email": "support@wellknown.support" },
   "updated": "2026-10-15",
