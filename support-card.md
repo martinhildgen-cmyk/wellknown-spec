@@ -185,6 +185,8 @@ A receipt is the proof that a conversation happened and how it ended. It exists 
 
 Fields: `id`, `product`, `provider`, `tool`, `outcome` (`resolved`, `escalated`, `refused`, `failed`), `created_at`, `principal_level`, `summary` (one line, no secrets), `url`.
 
+Retention: a server may purge a receipt once its retention period is over. A purged receipt keeps its other fields and its `url` keeps answering; its `summary` becomes a fixed retention notice, and the optional `purged_at` (ISO 8601) gives the date of the purge. `purged_at` is null or absent until then.
+
 Delivery: always `inline` in tool outputs, and in the error body of a call that failed after the server accepted it (outcome `failed`, section 7); `email` to `principal.email` when given and the principal is verified (level 1 or above, section 5), never at level 0, where any agent could name any address; `webhook` when the vendor configured one. The public receipt page must not expose the transcript, only the summary and outcome.
 
 ## 7. Errors and limits
@@ -220,6 +222,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 - **0.2 (draft)**: the `receipt` field of the `ask` and `escalate` outputs (sections 4.1 and 4.3) may be absent while a server does not implement receipts (section 6). This only relaxes the output contract.
 - **0.2 (draft)**: receipts, from the first implementation (section 6). `ask` accepts `principal.email`, as `escalate` already did, so the receipt of an answered question can reach the human (sections 4.1 and 6). An error body may carry the `failed` receipt of a call the server accepted (sections 6 and 7). `status` with a `receipt_id` returns the receipt's fields under `receipt` and never a human reply, which stays behind the `ticket_id`: a receipt is meant to be shared (section 4.4). Optional fields only: no change to the card format, cards keep `"version": "0.1"`.
 - **0.2 (draft)**: email delivery of a receipt requires a verified principal, level 1 or above (section 6). At level 0 the receipt is inline only: an unverified `principal.email` could be anyone's, and mailing it would turn the support server into a relay. Servers do not store an unverified address for receipts.
+- **0.2 (draft)**: receipts may be purged once a retention period is over (section 6). The receipt and its page remain, the `summary` becomes a retention notice, and the optional `purged_at` field gives the date. An optional field only: no change to the card format, cards keep `"version": "0.1"`.
 - **0.1, 7 September 2026**: initial draft. Schema fix the same day: the conditional rules (`act` requires `actions`, level 1 requires `introspection_url`, level 2 `oauth`, level 3 `web_bot_auth`) now only apply when the triggering field is present, so a card missing `tools` or `levels` reports the missing field rather than the derived requirement. Also added upper bounds (URL and email length, `actions` count, `params` size) and a 64 KiB document limit, section 7. No change to the card format.
 
 ## 12. Reference implementation
