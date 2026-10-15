@@ -4,8 +4,8 @@ The specification is a draft. Feedback from people who publish MCP servers, APIs
 
 ## How to propose a change
 
-1. Open an issue describing the situation the spec does not cover: what the agent tried, what the vendor could not express in the card, what broke. Real cases beat hypotheticals.
-2. For a concrete proposal, open a pull request that changes, in this order: `support-card.md` (with a line in the changelog, section 11), `support-card.schema.json`, and the examples. Every example must validate against the schema (`npx @wellknown/spec validate examples/*.json`).
+1. [Open an issue](https://github.com/martinhildgen-cmyk/wellknown-spec/issues) describing the situation the spec does not cover: what the agent tried, what the vendor could not express in the card, what broke. Real cases beat hypotheticals.
+2. For a concrete proposal, open a pull request that changes, in this order: `support-card.md` (with a line in the changelog, section 11), `support-card.schema.json`, and the examples. Every example must validate against the schema: paste it into [the validator](https://wellknown.support/validate), or run any JSON Schema draft 2020-12 validator against `support-card.schema.json`.
 3. Minor versions only add optional fields. Anything that breaks an existing valid card is a major version and needs a migration note.
 
 ## Principles that proposals are judged against

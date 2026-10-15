@@ -1,6 +1,6 @@
 # Support Card specification
 
-**Status:** Draft 0.1, 7 September 2026. Open standard, CC0. Feedback: open an issue on this repository.
+**Status:** Draft 0.2 (in progress); cards declare "version": "0.1". First draft 7 September 2026. Open standard, CC0. Feedback: [open an issue](https://github.com/martinhildgen-cmyk/wellknown-spec/issues).
 
 ## 1. Purpose
 
@@ -230,4 +230,4 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 12. Reference implementation
 
-`@wellknown/spec` on npm ships this schema, generated TypeScript types, a `validateSupportCard` function and a `wellknown-spec validate` command. Source: `packages/spec` in the Wellknown repository.
+`@wellknown/spec` is the reference implementation: this schema, generated TypeScript types, a `validateSupportCard` function and a `wellknown-spec validate` command. It lives in `packages/spec` of the Wellknown repository and is not published on npm yet. Until it is, the validator at [wellknown.support/validate](https://wellknown.support/validate) runs the same code on any card, pasted or fetched from its URL, with the discovery checks of section 2.

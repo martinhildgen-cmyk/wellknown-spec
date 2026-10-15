@@ -2,7 +2,7 @@
 
 **An open standard for the support desk of AI agents.** A product publishes a small JSON document at `https://{domain}/.well-known/support.json` that tells any AI agent where and how to get help: a support endpoint (MCP or plain HTTP), the tools it exposes (`ask`, `act`, `escalate`, `status`), the levels of principal verification the vendor accepts, and a human fallback.
 
-Status: **Draft 0.1**, 7 September 2026. Licence: CC0 1.0, no rights reserved. Maintained by [Wellknown](https://wellknown.support); vendor-neutral by design, any product can publish a card pointing at its own implementation.
+Status: **Draft 0.2 (in progress); cards declare "version": "0.1"**. First draft 7 September 2026. Licence: CC0 1.0, no rights reserved. Maintained by [Wellknown](https://wellknown.support); vendor-neutral by design, any product can publish a card pointing at its own implementation.
 
 ## Why
 
@@ -30,13 +30,13 @@ An agent fetches the card, opens the MCP endpoint, and calls `ask` with the erro
 |---|---|
 | [support-card.md](support-card.md) | The specification: discovery, document format, the four tools, principal verification levels 0 to 3, receipts, errors, security |
 | [support-card.schema.json](support-card.schema.json) | Normative JSON Schema (draft 2020-12) |
-| [examples/](examples/) | Example cards: minimal, a self-hosted API vendor, Wellknown's own |
+| [examples/](examples/) | Example cards: minimal, a hosted demo, a self-hosted API vendor with actions, and Wellknown's own card as served at `wellknown.support` |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to propose changes, open questions for 0.2 |
 
 ## Tools
 
 - **Validator**: [wellknown.support/validate](https://wellknown.support/validate) checks any card against the schema and the discovery rules (HTTPS, content type, CORS, caching, redirects).
-- **npm**: `npm install @wellknown/spec` gives you the schema, TypeScript types, `validateSupportCard()` and a `wellknown-spec validate` command.
+- **Reference implementation**: `@wellknown/spec` (schema, TypeScript types, `validateSupportCard()` and a `wellknown-spec validate` command) is not on npm yet; the validator above runs it on any card in the meantime.
 - **Hosted implementation**: [Wellknown](https://wellknown.support) hosts cards and the MCP support server for products that do not want to run their own.
 
 ## Publish a card in three steps
@@ -51,4 +51,4 @@ The card complements MCP (the support endpoint is an ordinary MCP server), `llms
 
 ## Feedback
 
-Open an issue. Changes to the card format or the tool contracts go through the process in [CONTRIBUTING.md](CONTRIBUTING.md).
+[Open an issue](https://github.com/martinhildgen-cmyk/wellknown-spec/issues). Changes to the card format or the tool contracts go through the process in [CONTRIBUTING.md](CONTRIBUTING.md).
