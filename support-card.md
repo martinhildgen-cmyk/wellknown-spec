@@ -23,7 +23,7 @@ Rules:
 - `Content-Type: application/json; charset=utf-8`.
 - Must be served over HTTPS, with `Access-Control-Allow-Origin: *`.
 - May redirect (301/302/307/308) to a hosted card on another origin, for example `https://{slug}.wellknown.support/.well-known/support.json`. Clients must follow up to three redirects.
-- Should be cacheable (`Cache-Control: max-age=3600` or longer).
+- Should be cacheable. A card served from the vendor's own domain should use `Cache-Control: max-age=3600` or longer. A provider that hosts cards may use a shorter lifetime on purpose, because a hosted card changes when the product it describes changes (its name, its escalation channel, its verification): Wellknown serves hosted cards with `max-age=300`.
 
 Additional discovery hints, all optional:
 
@@ -47,8 +47,8 @@ Top-level fields. See `support-card.schema.json` for the normative schema.
 | `tools` | yes | Array of tool names available: any of `ask`, `act`, `escalate`, `status` |
 | `verification` | yes | Object: `levels` (array of integers 0 to 3 accepted), optional `introspection_url` (level 1), `oauth` (level 2: `authorization_url`, `token_url`, `scopes`), `web_bot_auth` (level 3: `directory_url`) |
 | `actions` | no | Array of declared actions for `act`: `id`, `description`, `params` (JSON Schema), `min_level`, `confirmation` (`"none"`, `"principal"`, `"vendor"`), optional `rate_limit` |
-| `policies` | no | Object: `rate_limit` (requests per minute per agent), `languages`, `human_hours` (ISO 8601 recurring interval or free text), `data_retention_days` |
-| `receipts` | no | Object: `enabled`, `url_template` (with `{receipt_id}`), `delivery` (`"inline"`, `"email"`, `"webhook"`) |
+| `policies` | no | Object: `rate_limit` (`{ "requests": integer, "per": ... }`, where `per` is `"minute"`, `"hour"` or `"day"`, per agent identity; section 7 gives the default), `languages`, `human_hours` (ISO 8601 recurring interval or free text), `data_retention_days` |
+| `receipts` | no | Object: `enabled`, `url_template` (with `{receipt_id}`), `delivery` (an array of `"inline"`, `"email"`, `"webhook"`; `"email"` only when `verification.levels` accepts level 1 or above, section 6) |
 | `contact` | yes | Human fallback: `email` and/or `url` |
 | `updated` | yes | ISO 8601 date of last change |
 | `provider` | no | Who hosts the support endpoint: `name`, `url`, optional `notice` |
