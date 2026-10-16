@@ -166,9 +166,12 @@ Output:
   "ticket_id": "string",
   "eta": "ISO 8601 duration, e.g. PT4H, or null",
   "status_url": "string",
-  "receipt": { "id": "string", "url": "string" }
+  "receipt": { "id": "string", "url": "string" },
+  "notice": "string, optional: set when no human was notified, for example while the product has no confirmed support channel"
 }
 ```
+
+When the product has no confirmed channel to a human yet, a server still keeps the ticket but tells nobody: the output then carries `notice`, one line that says so, and the server's description of `escalate` for that product says it before the call.
 
 Rules: `status_url` is the HTTP form of `status` for this ticket (section 4.4) and contains the `ticket_id`; whoever holds either reads the human reply. They are private to the agent and its human principal: the agent may hand `status_url` to its human, and must not post it or the `ticket_id` anywhere else. The receipt is the part meant to be shared. A request to `status_url` that accepts `text/html` should get a minimal page with the product's name, the ticket's state and the reply, served with `Cache-Control: no-store` and `X-Robots-Tag: noindex`; any other request gets the JSON of `status`.
 
@@ -228,6 +231,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: optional `notice` in the `escalate` output (section 4.3), set when the ticket was kept but no human was notified, for example while the product has no confirmed support channel. An optional output field only; no change to the card format.
 - **0.2 (draft)**: the five values of `next` are defined in the spec (section 4.1), where they were only in servers' prompts, and servers describe every output field in the schemas they advertise. No change to any contract.
 - **0.2 (draft)**: `principal.level` is optional and defaults to 0 (section 4.1): an agent that sends only `{ "principal": { "email": "..." } }` is no longer refused. An input that was refused is now accepted; no change to the card format.
 - **0.2 (draft)**: one rule for `status_url` (section 4.3): it contains the `ticket_id`, and both are private to the agent and its human principal, who may be handed `status_url`; the receipt is what is shared. A browser request to `status_url` should get a minimal page, not cached and not indexed. No change to the card format.
