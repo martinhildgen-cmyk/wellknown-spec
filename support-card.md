@@ -188,7 +188,7 @@ Rules: `status_url` is the HTTP form of `status` for this ticket (section 4.4) a
 
 ### 4.4 `status`
 
-Input: `{ "ticket_id": "optional", "receipt_id": "optional" }`. Without arguments, returns the product's component status. With a ticket id, returns its state (`open`, `answered`, `closed`) and any human reply addressed to the agent. With a receipt id, returns the receipt under `receipt` (the fields of section 6), plus its state while an `act` awaits confirmation; never a human reply, since a receipt is meant to be shown and shared.
+Input: `{ "ticket_id": "optional", "receipt_id": "optional" }`. Without arguments, returns the product's component status. With a ticket id, returns its state (`open` or `answered`), any human reply addressed to the agent and when it was written (`answered_at`). A vendor may replace its reply while the ticket is `answered`: `reply` and `answered_at` then change, so an agent that needs the latest reply keeps polling, at most every few minutes. With a receipt id, returns the receipt under `receipt` (the fields of section 6), plus its state while an `act` awaits confirmation; never a human reply, since a receipt is meant to be shown and shared.
 
 ## 5. Principal verification
 
@@ -243,6 +243,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: a ticket's state is `open` or `answered` (section 4.4); `closed`, listed in 0.1, was never returned by any server and is dropped. A replaced reply changes `answered_at`, which agents may poll for. Fewer output values only; no change to the card format.
 - **0.2 (draft)**: the `eta` of `escalate` counts the support hours of `policies.human_hours`, not calendar hours (section 4.3). No change to the card format.
 - **0.2 (draft)**: tolerance (sections 4.1, 4.3 and 7). A server may trim an over-long `context.error`, transcript or transcript message instead of refusing the call; `conversation_id` groups calls and carries no memory; on MCP, a request refused before any tool runs is a JSON-RPC error with the error body in `error.data`. Inputs that were refused may now be accepted; no change to the card format.
 - **0.2 (draft)**: discovery (section 2) gives the lookup order (the host called, its registrable domain, the documentation's host), puts the `Link` header on API responses as well as pages, and names the `support_card` field of 4xx and 5xx error bodies, with `mcp_url` and `base_url` in a support server's own. Hints only; no change to the card format.
