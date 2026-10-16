@@ -106,7 +106,9 @@ Output:
 }
 ```
 
-Rules: an answer without at least one citation must set `confidence` below 0.5 and `next` to `escalate`. Servers must not invent product behaviour that is not in the indexed sources.
+Rules: an answer without at least one citation must set `confidence` below 0.5 and `next` to `escalate`, or to `read` when the product has no confirmed human channel to escalate to; its `answer` then says that the question is outside the documentation and, with `read`, where to read it. Servers must not invent product behaviour that is not in the indexed sources.
+
+A "not found" answer means the documentation does not cover the question. When the server cannot answer for a reason of its own, it returns an error instead (section 7), so that an agent does not hand a vendor's humans an outage of the support server: `rate_limited` with `retry_after` when a capacity of the server is spent (for example a daily budget of model calls, `retry_after` then counting to its reset), `internal` with `retry_after` when the answer could not be produced (for example a model reply cut off or not in the expected form).
 
 ### 4.2 `act`
 
@@ -193,7 +195,7 @@ Delivery: always `inline` in tool outputs, and in the error body of a call that 
 
 ## 7. Errors and limits
 
-- HTTP servers use standard status codes; MCP servers return tool errors with `isError: true` and a JSON body `{ "code": "...", "message": "...", "retry_after": seconds }`. When the call was accepted before it failed (`internal`), the body may also carry `"receipt": { "id": "...", "url": "..." }`, a receipt with outcome `failed` (section 6).
+- HTTP servers use standard status codes; MCP servers return tool errors with `isError: true` and a JSON body `{ "code": "...", "message": "...", "retry_after": seconds }`. When the call was accepted before it failed (`internal`, or `rate_limited` from a capacity counted after admission, section 4.1), the body may also carry `"receipt": { "id": "...", "url": "..." }`, a receipt with outcome `failed` (section 6).
 - Codes: `rate_limited`, `verification_required`, `verification_failed`, `action_unknown`, `action_refused`, `index_not_ready`, `invalid_request`, `internal`.
 - `invalid_request`: the input does not match the tool's schema (HTTP 400), or names an endpoint, ticket or receipt the server does not know (HTTP 404). Fix the request before retrying.
 - Default rate limit if not declared: 60 requests per minute per agent identity.
@@ -220,6 +222,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: `ask` tells a gap in the documentation from a failure of the server (section 4.1). An uncited answer still sets `confidence` below 0.5; its `next` is `escalate`, or `read` when the product has no confirmed human channel, and its `answer` says the question is outside the documentation. A server that cannot answer for a reason of its own (a spent daily capacity, a model reply it cannot use) returns `rate_limited` or `internal` with `retry_after` instead of "not found", and the error body may carry the `failed` receipt (section 7). No change to the card format.
 - **0.2 (draft)**: optional `provider.notice` (section 3), one line in which a hosting provider says the card is not the vendor's own: an unofficial demo built from public documentation, or a product its vendor has not confirmed yet. An optional field only, cards keep `"version": "0.1"`; validators that predate it refuse a card carrying it, since the schema allows no unknown property, so only hosted cards that need it carry it.
 - **0.2 (draft)**: added the `invalid_request` error code, section 7, for inputs that fail validation and for unknown endpoints, tickets or receipts; servers already returned it. An addition only (section 10): no change to the card format, cards keep `"version": "0.1"`.
 - **0.2 (draft)**: the `receipt` field of the `ask` and `escalate` outputs (sections 4.1 and 4.3) may be absent while a server does not implement receipts (section 6). This only relaxes the output contract.
