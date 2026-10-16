@@ -88,7 +88,7 @@ Input:
     "sdk": "string, optional: SDK or client and version",
     "attempts": "integer, optional: how many times the agent already retried"
   },
-  "principal": { "level": 0, "token": "optional, see section 5", "email": "optional, where the human principal can be reached" },
+  "principal": { "level": "integer 0 to 3, optional: 0 when left out", "token": "optional, see section 5", "email": "optional, where the human principal can be reached" },
   "conversation_id": "string, optional: continue a previous conversation"
 }
 ```
@@ -109,6 +109,8 @@ Output:
 Rules: an answer without at least one citation must set `confidence` below 0.5 and `next` to `escalate`, or to `read` when the product has no confirmed human channel to escalate to; its `answer` then says that the question is outside the documentation and, with `read`, where to read it. Servers must not invent product behaviour that is not in the indexed sources.
 
 A "not found" answer means the documentation does not cover the question. When the server cannot answer for a reason of its own, it returns an error instead (section 7), so that an agent does not hand a vendor's humans an outage of the support server: `rate_limited` with `retry_after` when a capacity of the server is spent (for example a daily budget of model calls, `retry_after` then counting to its reset), `internal` with `retry_after` when the answer could not be produced (for example a model reply cut off or not in the expected form).
+
+`principal.level` defaults to 0: a `principal` sent without it, for example `{ "email": "..." }`, is a level 0 principal, never an `invalid_request`. The same holds for `escalate` (section 4.3) and `act` (section 4.2), where level 0 then meets the action's `min_level` like any other level.
 
 ### 4.2 `act`
 
@@ -149,7 +151,7 @@ Input:
 {
   "summary": "string, required, one paragraph",
   "transcript": [ { "role": "agent | support", "content": "string" } ],
-  "principal": { "level": 0, "token": "optional", "email": "optional, where the human principal can be reached" },
+  "principal": { "level": "integer 0 to 3, optional: 0 when left out", "token": "optional", "email": "optional, where the human principal can be reached" },
   "urgency": "one of low | normal | high",
   "conversation_id": "string, optional"
 }
@@ -224,6 +226,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: `principal.level` is optional and defaults to 0 (section 4.1): an agent that sends only `{ "principal": { "email": "..." } }` is no longer refused. An input that was refused is now accepted; no change to the card format.
 - **0.2 (draft)**: one rule for `status_url` (section 4.3): it contains the `ticket_id`, and both are private to the agent and its human principal, who may be handed `status_url`; the receipt is what is shared. A browser request to `status_url` should get a minimal page, not cached and not indexed. No change to the card format.
 - **0.2 (draft)**: `ask` tells a gap in the documentation from a failure of the server (section 4.1). An uncited answer still sets `confidence` below 0.5; its `next` is `escalate`, or `read` when the product has no confirmed human channel, and its `answer` says the question is outside the documentation. A server that cannot answer for a reason of its own (a spent daily capacity, a model reply it cannot use) returns `rate_limited` or `internal` with `retry_after` instead of "not found", and the error body may carry the `failed` receipt (section 7). No change to the card format.
 - **0.2 (draft)**: optional `provider.notice` (section 3), one line in which a hosting provider says the card is not the vendor's own: an unofficial demo built from public documentation, or a product its vendor has not confirmed yet. An optional field only, cards keep `"version": "0.1"`; validators that predate it refuse a card carrying it, since the schema allows no unknown property, so only hosted cards that need it carry it.
