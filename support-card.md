@@ -180,6 +180,8 @@ Output:
 }
 ```
 
+`eta` is counted in the support hours the card declares (`policies.human_hours`), not in calendar hours: a reply target of four business hours set on a ticket opened on a Tuesday at 22:00 for hours of Monday to Friday 08:00 to 19:00 is `PT14H`, Wednesday at noon. A server that knows no delay for the product returns null.
+
 When the product has no confirmed channel to a human yet, a server still keeps the ticket but tells nobody: the output then carries `notice`, one line that says so, and the server's description of `escalate` for that product says it before the call.
 
 Rules: `status_url` is the HTTP form of `status` for this ticket (section 4.4) and contains the `ticket_id`; whoever holds either reads the human reply. They are private to the agent and its human principal: the agent may hand `status_url` to its human, and must not post it or the `ticket_id` anywhere else. The receipt is the part meant to be shared. A request to `status_url` that accepts `text/html` should get a minimal page with the product's name, the ticket's state and the reply, served with `Cache-Control: no-store` and `X-Robots-Tag: noindex`; any other request gets the JSON of `status`.
@@ -241,6 +243,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: the `eta` of `escalate` counts the support hours of `policies.human_hours`, not calendar hours (section 4.3). No change to the card format.
 - **0.2 (draft)**: tolerance (sections 4.1, 4.3 and 7). A server may trim an over-long `context.error`, transcript or transcript message instead of refusing the call; `conversation_id` groups calls and carries no memory; on MCP, a request refused before any tool runs is a JSON-RPC error with the error body in `error.data`. Inputs that were refused may now be accepted; no change to the card format.
 - **0.2 (draft)**: discovery (section 2) gives the lookup order (the host called, its registrable domain, the documentation's host), puts the `Link` header on API responses as well as pages, and names the `support_card` field of 4xx and 5xx error bodies, with `mcp_url` and `base_url` in a support server's own. Hints only; no change to the card format.
 - **0.2 (draft)**: optional `notice` in the `escalate` output (section 4.3), set when the ticket was kept but no human was notified, for example while the product has no confirmed support channel. An optional output field only; no change to the card format.
