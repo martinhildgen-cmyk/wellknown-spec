@@ -166,6 +166,8 @@ Input:
 }
 ```
 
+Retries. An agent that calls `escalate` again for the same problem, after a timeout for example, must not open a second ticket. Within 10 minutes of a ticket that is still `open`, a server returns that ticket (same `ticket_id`, same receipt) for a call that repeats it word for word with the same `conversation_id`, and tells no human again. When the `conversation_id` is one the server issued itself and no one else can guess, a call with a new `summary` or `transcript` returns the same ticket too, and the server passes the new text on to the human as a follow-up of that ticket. A `conversation_id` an agent made up only ever matches word-for-word retries.
+
 A server may keep only the latest 20 messages of a longer `transcript`, and the head and tail of a message past 2000 characters, rather than refuse the call; it then tells the human who reads the ticket what it left out.
 
 Output:
@@ -243,6 +245,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: retries of `escalate` (section 4.3): within 10 minutes, a word-for-word retry with the same `conversation_id` returns the open ticket without telling anyone again, and a call with new text under a `conversation_id` the server issued returns it too, the text passed on to the human as a follow-up. No change to the card format.
 - **0.2 (draft)**: a ticket's state is `open` or `answered` (section 4.4); `closed`, listed in 0.1, was never returned by any server and is dropped. A replaced reply changes `answered_at`, which agents may poll for. Fewer output values only; no change to the card format.
 - **0.2 (draft)**: the `eta` of `escalate` counts the support hours of `policies.human_hours`, not calendar hours (section 4.3). No change to the card format.
 - **0.2 (draft)**: tolerance (sections 4.1, 4.3 and 7). A server may trim an over-long `context.error`, transcript or transcript message instead of refusing the call; `conversation_id` groups calls and carries no memory; on MCP, a request refused before any tool runs is a JSON-RPC error with the error body in `error.data`. Inputs that were refused may now be accepted; no change to the card format.
