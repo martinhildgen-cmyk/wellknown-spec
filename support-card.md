@@ -90,13 +90,13 @@ Input:
 {
   "question": "string, required",
   "context": {
-    "error": "string, optional: error message or code received",
+    "error": "string, optional: error message or code received; past 4000 characters a server may keep its head and tail instead of refusing it",
     "endpoint": "string, optional: URL, method or tool name involved",
     "sdk": "string, optional: SDK or client and version",
     "attempts": "integer, optional: how many times the agent already retried"
   },
   "principal": { "level": "integer 0 to 3, optional: 0 when left out", "token": "optional, see section 5", "email": "optional, where the human principal can be reached" },
-  "conversation_id": "string, optional: continue a previous conversation"
+  "conversation_id": "string, optional: the conversation_id of an earlier call, which groups calls in receipts and tickets; servers keep no history, so each question carries what it needs"
 }
 ```
 
@@ -162,9 +162,11 @@ Input:
   "transcript": [ { "role": "agent | support", "content": "string" } ],
   "principal": { "level": "integer 0 to 3, optional: 0 when left out", "token": "optional", "email": "optional, where the human principal can be reached" },
   "urgency": "one of low | normal | high",
-  "conversation_id": "string, optional"
+  "conversation_id": "string, optional: the conversation_id returned by ask"
 }
 ```
+
+A server may keep only the latest 20 messages of a longer `transcript`, and the head and tail of a message past 2000 characters, rather than refuse the call; it then tells the human who reads the ticket what it left out.
 
 Output:
 
@@ -211,6 +213,7 @@ Delivery: always `inline` in tool outputs, and in the error body of a call that 
 
 ## 7. Errors and limits
 
+- On an MCP endpoint, a request refused before any tool runs (a request rate limit, an unknown product) is answered as a JSON-RPC error response to that request, with a server error code (-32000 to -32099) and the body below in `error.data`, so that a client shows it as an error of the call, `retry_after` included, rather than as a transport failure.
 - HTTP servers use standard status codes; MCP servers return tool errors with `isError: true` and a JSON body `{ "code": "...", "message": "...", "retry_after": seconds }`. When the call was accepted before it failed (`internal`, or `rate_limited` from a capacity counted after admission, section 4.1), the body may also carry `"receipt": { "id": "...", "url": "..." }`, a receipt with outcome `failed` (section 6).
 - Codes: `rate_limited`, `verification_required`, `verification_failed`, `action_unknown`, `action_refused`, `index_not_ready`, `invalid_request`, `internal`.
 - `invalid_request`: the input does not match the tool's schema (HTTP 400), or names an endpoint, ticket or receipt the server does not know (HTTP 404). Fix the request before retrying.
@@ -238,6 +241,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: tolerance (sections 4.1, 4.3 and 7). A server may trim an over-long `context.error`, transcript or transcript message instead of refusing the call; `conversation_id` groups calls and carries no memory; on MCP, a request refused before any tool runs is a JSON-RPC error with the error body in `error.data`. Inputs that were refused may now be accepted; no change to the card format.
 - **0.2 (draft)**: discovery (section 2) gives the lookup order (the host called, its registrable domain, the documentation's host), puts the `Link` header on API responses as well as pages, and names the `support_card` field of 4xx and 5xx error bodies, with `mcp_url` and `base_url` in a support server's own. Hints only; no change to the card format.
 - **0.2 (draft)**: optional `notice` in the `escalate` output (section 4.3), set when the ticket was kept but no human was notified, for example while the product has no confirmed support channel. An optional output field only; no change to the card format.
 - **0.2 (draft)**: the five values of `next` are defined in the spec (section 4.1), where they were only in servers' prompts, and servers describe every output field in the schemas they advertise. No change to any contract.
