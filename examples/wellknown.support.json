@@ -19,7 +19,8 @@
   "policies": {
     "rate_limit": { "requests": 60, "per": "minute" },
     "languages": ["en", "fr"],
-    "human_hours": "Mon-Fri 08:00-19:00 Europe/Paris, best effort otherwise"
+    "human_hours": "Mon-Fri 08:00-19:00 Europe/Paris, best effort otherwise",
+    "data_retention_days": 90
   },
   "receipts": {
     "enabled": true,
