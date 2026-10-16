@@ -220,7 +220,21 @@ Delivery: always `inline` in tool outputs, and in the error body of a call that 
 - On an MCP endpoint, a request refused before any tool runs (a request rate limit, an unknown product) is answered as a JSON-RPC error response to that request, with a server error code (-32000 to -32099) and the body below in `error.data`, so that a client shows it as an error of the call, `retry_after` included, rather than as a transport failure.
 - HTTP servers use standard status codes; MCP servers return tool errors with `isError: true` and a JSON body `{ "code": "...", "message": "...", "retry_after": seconds }`. When the call was accepted before it failed (`internal`, or `rate_limited` from a capacity counted after admission, section 4.1), the body may also carry `"receipt": { "id": "...", "url": "..." }`, a receipt with outcome `failed` (section 6).
 - Codes: `rate_limited`, `verification_required`, `verification_failed`, `action_unknown`, `action_refused`, `index_not_ready`, `invalid_request`, `internal`.
-- `invalid_request`: the input does not match the tool's schema (HTTP 400), or names an endpoint, ticket or receipt the server does not know (HTTP 404). Fix the request before retrying.
+- `invalid_request`: the input does not match the tool's schema (HTTP 400), or names an endpoint, ticket or receipt the server does not know (HTTP 404), or uses a method the endpoint does not take (HTTP 405, with `Allow`). Fix the request before retrying.
+- HTTP status of each code, the same whichever endpoint answers it:
+
+| Code | HTTP status |
+|---|---|
+| `invalid_request` | 400; 404 for something the server does not know; 405 for a wrong method |
+| `verification_required` | 401 |
+| `verification_failed` | 403 |
+| `action_unknown` | 400 |
+| `action_refused` | 403 |
+| `rate_limited` | 429, with `Retry-After` |
+| `index_not_ready` | 503, with `Retry-After` |
+| `internal` | 500 |
+
+- HTTP parity: everything an MCP server says before a call (what each tool is for, the instructions it gives agents) should also be readable over HTTP at the support server's root (`GET {base}` of the HTTP API answers the same), with an example request per tool.
 - Default rate limit if not declared: 60 requests per minute per agent identity.
 - Card size: a card must not exceed 64 KiB. Validators may reject larger documents before parsing. URLs are limited to 2048 characters, `actions` to 64 entries, each action's `params` schema to 32 top-level properties.
 
@@ -245,6 +259,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: each error code has its HTTP status (section 7), `invalid_request` also covering a wrong method (405); a support server's root and its HTTP base URL describe its tools for HTTP clients as its MCP instructions do. No change to the card format.
 - **0.2 (draft)**: retries of `escalate` (section 4.3): within 10 minutes, a word-for-word retry with the same `conversation_id` returns the open ticket without telling anyone again, and a call with new text under a `conversation_id` the server issued returns it too, the text passed on to the human as a follow-up. No change to the card format.
 - **0.2 (draft)**: a ticket's state is `open` or `answered` (section 4.4); `closed`, listed in 0.1, was never returned by any server and is dropped. A replaced reply changes `answered_at`, which agents may poll for. Fewer output values only; no change to the card format.
 - **0.2 (draft)**: the `eta` of `escalate` counts the support hours of `policies.human_hours`, not calendar hours (section 4.3). No change to the card format.
