@@ -25,9 +25,16 @@ Rules:
 - May redirect (301/302/307/308) to a hosted card on another origin, for example `https://{slug}.wellknown.support/.well-known/support.json`. Clients must follow up to three redirects.
 - Should be cacheable (`Cache-Control: max-age=3600` or longer).
 
-Additional discovery hints, all optional:
+Lookup order. An agent that holds a URL of the product (an API endpoint that failed, a page, a tool's server) and no hint below tries, in this order, stopping at the first card found:
 
-- HTTP response header on any page of the product: `Link: <https://example.com/.well-known/support.json>; rel="support-card"`.
+1. the host of that URL: `https://api.example.com/.well-known/support.json` for a call to `api.example.com`;
+2. its registrable domain (the public suffix plus one label): `https://example.com/.well-known/support.json`;
+3. the host of the product's documentation, when the agent read it first: `https://docs.example.com/.well-known/support.json`. A card's `product.docs` names that host, so a card found there or above can be checked against it.
+
+Additional discovery hints, all optional. Each names the card's URL, so an agent that meets one needs no lookup:
+
+- HTTP response header on any page of the product and on every response of its API, error responses first: `Link: <https://example.com/.well-known/support.json>; rel="support-card"`.
+- In the JSON body of the API's 4xx and 5xx responses, a `support_card` field holding the card URL: where an agent stuck on an error looks first. A support server (section 4) adds `mcp_url` and `base_url` to its own error bodies, the endpoints of section 3's `support`, so an agent that called a wrong path finds the right ones.
 - HTML: `<link rel="support-card" href="/.well-known/support.json">`.
 - In an MCP server card (`/.well-known/mcp/server.json`), a `support` field holding the card URL.
 - In `llms.txt`, a line `Support card: https://example.com/.well-known/support.json`.
@@ -231,6 +238,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: discovery (section 2) gives the lookup order (the host called, its registrable domain, the documentation's host), puts the `Link` header on API responses as well as pages, and names the `support_card` field of 4xx and 5xx error bodies, with `mcp_url` and `base_url` in a support server's own. Hints only; no change to the card format.
 - **0.2 (draft)**: optional `notice` in the `escalate` output (section 4.3), set when the ticket was kept but no human was notified, for example while the product has no confirmed support channel. An optional output field only; no change to the card format.
 - **0.2 (draft)**: the five values of `next` are defined in the spec (section 4.1), where they were only in servers' prompts, and servers describe every output field in the schemas they advertise. No change to any contract.
 - **0.2 (draft)**: `principal.level` is optional and defaults to 0 (section 4.1): an agent that sends only `{ "principal": { "email": "..." } }` is no longer refused. An input that was refused is now accepted; no change to the card format.
