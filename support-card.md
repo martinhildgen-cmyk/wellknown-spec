@@ -106,6 +106,8 @@ Output:
 }
 ```
 
+`next` tells the agent what to do now: `retry` (the failure is transient: send the same request again), `fix_request` (change the request as the answer says), `read` (read the cited pages, or the documentation the answer names, before acting), `escalate` (call `escalate`: the documentation does not answer and a human at the vendor can), `wait` (wait as the documentation says, then retry). Servers describe every output field in the schemas they advertise, `next` with these five meanings.
+
 Rules: an answer without at least one citation must set `confidence` below 0.5 and `next` to `escalate`, or to `read` when the product has no confirmed human channel to escalate to; its `answer` then says that the question is outside the documentation and, with `read`, where to read it. Servers must not invent product behaviour that is not in the indexed sources.
 
 A "not found" answer means the documentation does not cover the question. When the server cannot answer for a reason of its own, it returns an error instead (section 7), so that an agent does not hand a vendor's humans an outage of the support server: `rate_limited` with `retry_after` when a capacity of the server is spent (for example a daily budget of model calls, `retry_after` then counting to its reset), `internal` with `retry_after` when the answer could not be produced (for example a model reply cut off or not in the expected form).
@@ -226,6 +228,7 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: the five values of `next` are defined in the spec (section 4.1), where they were only in servers' prompts, and servers describe every output field in the schemas they advertise. No change to any contract.
 - **0.2 (draft)**: `principal.level` is optional and defaults to 0 (section 4.1): an agent that sends only `{ "principal": { "email": "..." } }` is no longer refused. An input that was refused is now accepted; no change to the card format.
 - **0.2 (draft)**: one rule for `status_url` (section 4.3): it contains the `ticket_id`, and both are private to the agent and its human principal, who may be handed `status_url`; the receipt is what is shared. A browser request to `status_url` should get a minimal page, not cached and not indexed. No change to the card format.
 - **0.2 (draft)**: `ask` tells a gap in the documentation from a failure of the server (section 4.1). An uncited answer still sets `confidence` below 0.5; its `next` is `escalate`, or `read` when the product has no confirmed human channel, and its `answer` says the question is outside the documentation. A server that cannot answer for a reason of its own (a spent daily capacity, a model reply it cannot use) returns `rate_limited` or `internal` with `retry_after` instead of "not found", and the error body may carry the `failed` receipt (section 7). No change to the card format.
