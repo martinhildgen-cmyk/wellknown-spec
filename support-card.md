@@ -25,9 +25,16 @@ Rules:
 - May redirect (301/302/307/308) to a hosted card on another origin, for example `https://{slug}.wellknown.support/.well-known/support.json`. Clients must follow up to three redirects.
 - Should be cacheable. A card served from the vendor's own domain should use `Cache-Control: max-age=3600` or longer. A provider that hosts cards may use a shorter lifetime on purpose, because a hosted card changes when the product it describes changes (its name, its escalation channel, its verification): Wellknown serves hosted cards with `max-age=300`.
 
-Additional discovery hints, all optional:
+Lookup order. An agent that holds a URL of the product (an API endpoint that failed, a page, a tool's server) and no hint below tries, in this order, stopping at the first card found:
 
-- HTTP response header on any page of the product: `Link: <https://example.com/.well-known/support.json>; rel="support-card"`.
+1. the host of that URL: `https://api.example.com/.well-known/support.json` for a call to `api.example.com`;
+2. its registrable domain (the public suffix plus one label): `https://example.com/.well-known/support.json`;
+3. the host of the product's documentation, when the agent read it first: `https://docs.example.com/.well-known/support.json`. A card's `product.docs` names that host, so a card found there or above can be checked against it.
+
+Additional discovery hints, all optional. Each names the card's URL, so an agent that meets one needs no lookup:
+
+- HTTP response header on any page of the product and on every response of its API, error responses first: `Link: <https://example.com/.well-known/support.json>; rel="support-card"`.
+- In the JSON body of the API's 4xx and 5xx responses, a `support_card` field holding the card URL: where an agent stuck on an error looks first. A support server (section 4) adds `mcp_url` and `base_url` to its own error bodies, the endpoints of section 3's `support`, so an agent that called a wrong path finds the right ones.
 - HTML: `<link rel="support-card" href="/.well-known/support.json">`.
 - In an MCP server card (`/.well-known/mcp/server.json`), a `support` field holding the card URL.
 - In `llms.txt`, a line `Support card: https://example.com/.well-known/support.json`.
@@ -83,13 +90,13 @@ Input:
 {
   "question": "string, required",
   "context": {
-    "error": "string, optional: error message or code received",
+    "error": "string, optional: error message or code received; past 4000 characters a server may keep its head and tail instead of refusing it",
     "endpoint": "string, optional: URL, method or tool name involved",
     "sdk": "string, optional: SDK or client and version",
     "attempts": "integer, optional: how many times the agent already retried"
   },
-  "principal": { "level": 0, "token": "optional, see section 5", "email": "optional, where the human principal can be reached" },
-  "conversation_id": "string, optional: continue a previous conversation"
+  "principal": { "level": "integer 0 to 3, optional: 0 when left out", "token": "optional, see section 5", "email": "optional, where the human principal can be reached" },
+  "conversation_id": "string, optional: the conversation_id of an earlier call, which groups calls in receipts and tickets; servers keep no history, so each question carries what it needs"
 }
 ```
 
@@ -106,7 +113,13 @@ Output:
 }
 ```
 
-Rules: an answer without at least one citation must set `confidence` below 0.5 and `next` to `escalate`. Servers must not invent product behaviour that is not in the indexed sources.
+`next` tells the agent what to do now: `retry` (the failure is transient: send the same request again), `fix_request` (change the request as the answer says), `read` (read the cited pages, or the documentation the answer names, before acting), `escalate` (call `escalate`: the documentation does not answer and a human at the vendor can), `wait` (wait as the documentation says, then retry). Servers describe every output field in the schemas they advertise, `next` with these five meanings.
+
+Rules: an answer without at least one citation must set `confidence` below 0.5 and `next` to `escalate`, or to `read` when the product has no confirmed human channel to escalate to; its `answer` then says that the question is outside the documentation and, with `read`, where to read it. Servers must not invent product behaviour that is not in the indexed sources.
+
+A "not found" answer means the documentation does not cover the question. When the server cannot answer for a reason of its own, it returns an error instead (section 7), so that an agent does not hand a vendor's humans an outage of the support server: `rate_limited` with `retry_after` when a capacity of the server is spent (for example a daily budget of model calls, `retry_after` then counting to its reset), `internal` with `retry_after` when the answer could not be produced (for example a model reply cut off or not in the expected form).
+
+`principal.level` defaults to 0: a `principal` sent without it, for example `{ "email": "..." }`, is a level 0 principal, never an `invalid_request`. The same holds for `escalate` (section 4.3) and `act` (section 4.2), where level 0 then meets the action's `min_level` like any other level.
 
 ### 4.2 `act`
 
@@ -147,11 +160,15 @@ Input:
 {
   "summary": "string, required, one paragraph",
   "transcript": [ { "role": "agent | support", "content": "string" } ],
-  "principal": { "level": 0, "token": "optional", "email": "optional, where the human principal can be reached" },
+  "principal": { "level": "integer 0 to 3, optional: 0 when left out", "token": "optional", "email": "optional, where the human principal can be reached" },
   "urgency": "one of low | normal | high",
-  "conversation_id": "string, optional"
+  "conversation_id": "string, optional: the conversation_id returned by ask"
 }
 ```
+
+Retries. An agent that calls `escalate` again for the same problem, after a timeout for example, must not open a second ticket. Within 10 minutes of a ticket that is still `open`, a server returns that ticket (same `ticket_id`, same receipt) for a call that repeats it word for word with the same `conversation_id`, and tells no human again. When the `conversation_id` is one the server issued itself and no one else can guess, a call with a new `summary` or `transcript` returns the same ticket too, and the server passes the new text on to the human as a follow-up of that ticket. A `conversation_id` an agent made up only ever matches word-for-word retries. A server-issued `conversation_id` therefore reaches the ticket for those 10 minutes: agents keep it as private as the `ticket_id`. A server may cap the follow-ups of a ticket (three, for the reference implementation) and say so in `notice`, and says in `notice` when a follow-up could not be passed on.
+
+A server may keep only the latest 20 messages of a longer `transcript`, and the head and tail of a message past 2000 characters, rather than refuse the call; it then tells the human who reads the ticket what it left out.
 
 Output:
 
@@ -160,13 +177,20 @@ Output:
   "ticket_id": "string",
   "eta": "ISO 8601 duration, e.g. PT4H, or null",
   "status_url": "string",
-  "receipt": { "id": "string", "url": "string" }
+  "receipt": { "id": "string", "url": "string" },
+  "notice": "string, optional: set when no human was notified, for example while the product has no confirmed support channel"
 }
 ```
 
+`eta` is counted in the support hours the card declares (`policies.human_hours`), not in calendar hours: a reply target of four business hours set on a ticket opened on a Tuesday at 22:00 for hours of Monday to Friday 08:00 to 19:00 is `PT14H`, Wednesday at noon. A server that knows no delay for the product returns null.
+
+When the product has no confirmed channel to a human yet, a server still keeps the ticket but tells nobody: the output then carries `notice`, one line that says so, and the server's description of `escalate` for that product says it before the call.
+
+Rules: `status_url` is the HTTP form of `status` for this ticket (section 4.4) and contains the `ticket_id`; whoever holds either reads the human reply. They are private to the agent and its human principal: the agent may hand `status_url` to its human, and must not post it or the `ticket_id` anywhere else. The receipt is the part meant to be shared. A request to `status_url` that accepts `text/html` should get a minimal page with the product's name, the ticket's state and the reply, served with `Cache-Control: no-store` and `X-Robots-Tag: noindex`; any other request gets the JSON of `status`.
+
 ### 4.4 `status`
 
-Input: `{ "ticket_id": "optional", "receipt_id": "optional" }`. Without arguments, returns the product's component status. With a ticket id, returns its state (`open`, `answered`, `closed`) and any human reply addressed to the agent. With a receipt id, returns the receipt under `receipt` (the fields of section 6), plus its state while an `act` awaits confirmation; never a human reply, since a receipt is meant to be shown and shared.
+Input: `{ "ticket_id": "optional", "receipt_id": "optional" }`. Without arguments, returns the product's component status. With a ticket id, returns its state (`open` or `answered`), any human reply addressed to the agent and when it was written (`answered_at`). A vendor may replace its reply while the ticket is `answered`: `reply` and `answered_at` then change, so an agent that needs the latest reply keeps polling, at most every few minutes. With a receipt id, returns the receipt under `receipt` (the fields of section 6), plus its state while an `act` awaits confirmation; never a human reply, since a receipt is meant to be shown and shared.
 
 ## 5. Principal verification
 
@@ -193,9 +217,24 @@ Delivery: always `inline` in tool outputs, and in the error body of a call that 
 
 ## 7. Errors and limits
 
-- HTTP servers use standard status codes; MCP servers return tool errors with `isError: true` and a JSON body `{ "code": "...", "message": "...", "retry_after": seconds }`. When the call was accepted before it failed (`internal`), the body may also carry `"receipt": { "id": "...", "url": "..." }`, a receipt with outcome `failed` (section 6).
+- On an MCP endpoint, a request refused before any tool runs (a request rate limit, an unknown product) is answered as a JSON-RPC error response to that request, with a server error code (-32000 to -32099) and the body below in `error.data`, so that a client shows it as an error of the call, `retry_after` included, rather than as a transport failure.
+- HTTP servers use standard status codes; MCP servers return tool errors with `isError: true` and a JSON body `{ "code": "...", "message": "...", "retry_after": seconds }`. When the call was accepted before it failed (`internal`, or `rate_limited` from a capacity counted after admission, section 4.1), the body may also carry `"receipt": { "id": "...", "url": "..." }`, a receipt with outcome `failed` (section 6).
 - Codes: `rate_limited`, `verification_required`, `verification_failed`, `action_unknown`, `action_refused`, `index_not_ready`, `invalid_request`, `internal`.
-- `invalid_request`: the input does not match the tool's schema (HTTP 400), or names an endpoint, ticket or receipt the server does not know (HTTP 404). Fix the request before retrying.
+- `invalid_request`: the input does not match the tool's schema (HTTP 400), or names an endpoint, ticket or receipt the server does not know (HTTP 404), or uses a method the endpoint does not take (HTTP 405, with `Allow`). Fix the request before retrying.
+- HTTP status of each code, the same whichever endpoint answers it:
+
+| Code | HTTP status |
+|---|---|
+| `invalid_request` | 400; 404 for something the server does not know; 405 for a wrong method |
+| `verification_required` | 401 |
+| `verification_failed` | 403 |
+| `action_unknown` | 400 |
+| `action_refused` | 403 |
+| `rate_limited` | 429, with `Retry-After` |
+| `index_not_ready` | 503, with `Retry-After` |
+| `internal` | 500 |
+
+- HTTP parity: everything an MCP server says before a call (what each tool is for, the instructions it gives agents) should also be readable over HTTP at the support server's root (`GET {base}` of the HTTP API answers the same), with an example request per tool.
 - Default rate limit if not declared: 60 requests per minute per agent identity.
 - Card size: a card must not exceed 64 KiB. Validators may reject larger documents before parsing. URLs are limited to 2048 characters, `actions` to 64 entries, each action's `params` schema to 32 top-level properties.
 
@@ -220,6 +259,17 @@ Cards declare `version`. Minor versions add optional fields only. Breaking chang
 
 ## 11. Changelog
 
+- **0.2 (draft)**: each error code has its HTTP status (section 7), `invalid_request` also covering a wrong method (405); a support server's root and its HTTP base URL describe its tools for HTTP clients as its MCP instructions do. No change to the card format.
+- **0.2 (draft)**: retries of `escalate` (section 4.3): within 10 minutes, a word-for-word retry with the same `conversation_id` returns the open ticket without telling anyone again, and a call with new text under a `conversation_id` the server issued returns it too, the text passed on to the human as a follow-up (capped per ticket, failures said in `notice`); such a `conversation_id` is private for those 10 minutes. No change to the card format.
+- **0.2 (draft)**: a ticket's state is `open` or `answered` (section 4.4); `closed`, listed in 0.1, was never returned by any server and is dropped. A replaced reply changes `answered_at`, which agents may poll for. Fewer output values only; no change to the card format.
+- **0.2 (draft)**: the `eta` of `escalate` counts the support hours of `policies.human_hours`, not calendar hours (section 4.3). No change to the card format.
+- **0.2 (draft)**: tolerance (sections 4.1, 4.3 and 7). A server may trim an over-long `context.error`, transcript or transcript message instead of refusing the call; `conversation_id` groups calls and carries no memory; on MCP, a request refused before any tool runs is a JSON-RPC error with the error body in `error.data`. Inputs that were refused may now be accepted; no change to the card format.
+- **0.2 (draft)**: discovery (section 2) gives the lookup order (the host called, its registrable domain, the documentation's host), puts the `Link` header on API responses as well as pages, and names the `support_card` field of 4xx and 5xx error bodies, with `mcp_url` and `base_url` in a support server's own. Hints only; no change to the card format.
+- **0.2 (draft)**: optional `notice` in the `escalate` output (section 4.3), set when the ticket was kept but no human was notified, for example while the product has no confirmed support channel. An optional output field only; no change to the card format.
+- **0.2 (draft)**: the five values of `next` are defined in the spec (section 4.1), where they were only in servers' prompts, and servers describe every output field in the schemas they advertise. No change to any contract.
+- **0.2 (draft)**: `principal.level` is optional and defaults to 0 (section 4.1): an agent that sends only `{ "principal": { "email": "..." } }` is no longer refused. An input that was refused is now accepted; no change to the card format.
+- **0.2 (draft)**: one rule for `status_url` (section 4.3): it contains the `ticket_id`, and both are private to the agent and its human principal, who may be handed `status_url`; the receipt is what is shared. A browser request to `status_url` should get a minimal page, not cached and not indexed. No change to the card format.
+- **0.2 (draft)**: `ask` tells a gap in the documentation from a failure of the server (section 4.1). An uncited answer still sets `confidence` below 0.5; its `next` is `escalate`, or `read` when the product has no confirmed human channel, and its `answer` says the question is outside the documentation. A server that cannot answer for a reason of its own (a spent daily capacity, a model reply it cannot use) returns `rate_limited` or `internal` with `retry_after` instead of "not found", and the error body may carry the `failed` receipt (section 7). No change to the card format.
 - **0.2 (draft)**: optional `provider.notice` (section 3), one line in which a hosting provider says the card is not the vendor's own: an unofficial demo built from public documentation, or a product its vendor has not confirmed yet. An optional field only, cards keep `"version": "0.1"`; validators that predate it refuse a card carrying it, since the schema allows no unknown property, so only hosted cards that need it carry it.
 - **0.2 (draft)**: added the `invalid_request` error code, section 7, for inputs that fail validation and for unknown endpoints, tickets or receipts; servers already returned it. An addition only (section 10): no change to the card format, cards keep `"version": "0.1"`.
 - **0.2 (draft)**: the `receipt` field of the `ask` and `escalate` outputs (sections 4.1 and 4.3) may be absent while a server does not implement receipts (section 6). This only relaxes the output contract.
