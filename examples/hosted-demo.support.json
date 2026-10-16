@@ -22,7 +22,7 @@
   "receipts": {
     "enabled": true,
     "url_template": "https://wellknown.support/r/{receipt_id}",
-    "delivery": ["inline", "email"]
+    "delivery": ["inline"]
   },
   "contact": { "email": "support@wellknown.support" },
   "updated": "2026-10-15",
